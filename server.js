@@ -12,9 +12,14 @@ const io = new Server(server, {
 });
 
 let waitingUser = null;
+let onlineUsers = 0; // Track total connected users
 
 io.on('connection', (socket) => {
+  onlineUsers++;
   console.log('User connected:', socket.id);
+  
+  // Send the updated count to everyone whenever someone joins
+  io.emit('online-count', onlineUsers);
 
   socket.on('start-searching', () => {
     leaveChat(socket);
@@ -52,12 +57,16 @@ io.on('connection', (socket) => {
     leaveChat(socket);
   });
 
+  // When a user disconnects, clean up, decrease count, and notify everyone
   socket.on('disconnect', () => {
     if (waitingUser === socket) {
       waitingUser = null;
     }
     leaveChat(socket);
     console.log('User disconnected:', socket.id);
+
+    onlineUsers = Math.max(0, onlineUsers - 1);
+    io.emit('online-count', onlineUsers);
   });
 });
 
